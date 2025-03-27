@@ -10,6 +10,22 @@ app.use(cors());
 app.use(express.json());
 
 /**
+ * 📅 Fonction robuste pour formater une date
+ */
+const formatDate = (timestamp) => {
+    if (!timestamp) return "Non disponible"; // Gère `null` et `undefined`
+
+    const numTimestamp = Number(timestamp);
+    if (isNaN(numTimestamp)) return "Format invalide"; // Vérifie que c’est un nombre
+
+    // Ajuste le timestamp (en secondes ou millisecondes)
+    const adjustedTimestamp = numTimestamp < 10000000000 ? numTimestamp * 1000 : numTimestamp;
+
+    const date = new Date(adjustedTimestamp);
+    return isNaN(date.getTime()) ? "Format invalide" : date.toISOString();
+};
+
+/**
  * 🔍 Récupérer les informations complètes du token Solana
  */
 app.get('/get-token-info/:contractAddress', async (req, res) => {
@@ -31,22 +47,15 @@ app.get('/get-token-info/:contractAddress', async (req, res) => {
             return res.status(404).json({ error: "Token non trouvé" });
         }
 
-        // Vérification des permissions (mint, freeze)
-        const isMintEnabled = tokenData.mint?.authority !== null;
-        const isFreezeEnabled = tokenData.freezeAuthority !== null;
-
-        // Date de création
-        const creationDate = new Date(tokenData.createdAt * 1000).toISOString();
-
         res.json({
             contract: contractAddress,
-            name: tokenData.name,
-            symbol: tokenData.symbol,
-            supply: tokenData.supply,
-            decimals: tokenData.decimals,
-            mintEnabled: isMintEnabled,
-            freezeEnabled: isFreezeEnabled,
-            createdAt: creationDate
+            name: tokenData.name || "Inconnu",
+            symbol: tokenData.symbol || "N/A",
+            supply: tokenData.supply || 0,
+            decimals: tokenData.decimals || 0,
+            mintEnabled: Boolean(tokenData.mint?.authority),
+            freezeEnabled: Boolean(tokenData.freezeAuthority),
+            createdAt: formatDate(tokenData.createdAt) // Utilisation de la fonction sécurisée
         });
     } catch (error) {
         console.error('Erreur API Helius:', error.message);
@@ -73,7 +82,7 @@ app.get('/get-token-holders/:contractAddress', async (req, res) => {
 
     try {
         const response = await axios.post(url, requestBody);
-        const holders = response.data.result.value.length;
+        const holders = response.data.result?.value?.length || 0;
 
         res.json({
             contract: contractAddress,
@@ -155,4 +164,3 @@ function calculateScore(findings) {
 app.listen(PORT, () => {
     console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
-
