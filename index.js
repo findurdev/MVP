@@ -93,6 +93,3 @@ app.listen(PORT, () => {
     console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
 
-// Lancer le serveur
-app.listen(PORT, () => console.log(`✅ Serveur lancé sur http://localhost:${PORT}`));
-
