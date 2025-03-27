@@ -9,7 +9,9 @@ const HELIUS_API_KEY = process.env.HELIUS_API_KEY || 'c77e2de7-5ecc-4409-94c1-51
 app.use(cors());
 app.use(express.json());
 
-// 🚀 Route 1 : Récupérer les métadonnées du token
+/**
+ * 🔍 Récupérer les informations complètes du token Solana
+ */
 app.get('/get-token-info/:contractAddress', async (req, res) => {
     const { contractAddress } = req.params;
     const url = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
@@ -23,14 +25,69 @@ app.get('/get-token-info/:contractAddress', async (req, res) => {
 
     try {
         const response = await axios.post(url, requestBody);
-        res.json(response.data);
+        const tokenData = response.data.result;
+
+        if (!tokenData) {
+            return res.status(404).json({ error: "Token non trouvé" });
+        }
+
+        // Vérification des permissions (mint, freeze)
+        const isMintEnabled = tokenData.mint?.authority !== null;
+        const isFreezeEnabled = tokenData.freezeAuthority !== null;
+
+        // Date de création
+        const creationDate = new Date(tokenData.createdAt * 1000).toISOString();
+
+        res.json({
+            contract: contractAddress,
+            name: tokenData.name,
+            symbol: tokenData.symbol,
+            supply: tokenData.supply,
+            decimals: tokenData.decimals,
+            mintEnabled: isMintEnabled,
+            freezeEnabled: isFreezeEnabled,
+            createdAt: creationDate
+        });
     } catch (error) {
         console.error('Erreur API Helius:', error.message);
         res.status(500).json({ error: 'Erreur lors de la récupération des données du token' });
     }
 });
 
-// 🚀 Route 2 : Scan de sécurité du contrat
+/**
+ * 🔍 Récupérer le nombre de holders d’un token Solana
+ */
+app.get('/get-token-holders/:contractAddress', async (req, res) => {
+    const { contractAddress } = req.params;
+    const url = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
+
+    const requestBody = {
+        jsonrpc: "2.0",
+        id: "holders-info",
+        method: "getTokenAccountsByOwner",
+        params: {
+            owner: contractAddress,
+            programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+    };
+
+    try {
+        const response = await axios.post(url, requestBody);
+        const holders = response.data.result.value.length;
+
+        res.json({
+            contract: contractAddress,
+            holdersCount: holders
+        });
+    } catch (error) {
+        console.error('Erreur API Helius:', error.message);
+        res.status(500).json({ error: 'Erreur lors de la récupération du nombre de holders' });
+    }
+});
+
+/**
+ * 🔍 Scan de sécurité avancé du contrat
+ */
 app.get('/deepScan/:contractAddress', async (req, res) => {
     const { contractAddress } = req.params;
     const url = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
@@ -59,7 +116,9 @@ app.get('/deepScan/:contractAddress', async (req, res) => {
     }
 });
 
-// 🔎 Fonction d'analyse de vulnérabilités du smart contract
+/**
+ * 🔎 Fonction d’analyse des vulnérabilités du smart contract
+ */
 function analyzeContract(data) {
     let findings = [];
 
@@ -78,7 +137,9 @@ function analyzeContract(data) {
     return findings;
 }
 
-// 🔢 Fonction de calcul du score de sécurité
+/**
+ * 🔢 Fonction de calcul du score de sécurité
+ */
 function calculateScore(findings) {
     let score = 100;
     findings.forEach(f => {
@@ -88,7 +149,9 @@ function calculateScore(findings) {
     return Math.max(score, 0);
 }
 
-// 🚀 Lancement du serveur
+/**
+ * 🚀 Lancer le serveur
+ */
 app.listen(PORT, () => {
     console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
