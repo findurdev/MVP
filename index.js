@@ -1,8 +1,5 @@
 const express = require('express');
 const axios = require('axios');
-
-const express = require('express');
-const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
@@ -76,11 +73,11 @@ app.get('/get-token-holders/:contractAddress', async (req, res) => {
 
     try {
         const response = await axios.post(url, requestBody);
-        const holders = response.data.result.value.length;
+        const holdersCount = response.data.result.value.length;
 
         res.json({
             contract: contractAddress,
-            holdersCount: holders
+            holdersCount
         });
     } catch (error) {
         console.error('Erreur API Helius:', error.message);
@@ -125,6 +122,7 @@ app.get('/deepScan/:contractAddress', async (req, res) => {
 function analyzeContract(data) {
     let findings = [];
 
+    // Recherche de vulnérabilités dans le contrat
     if (JSON.stringify(data).includes("Upgradeable")) 
         findings.push({ issue: "Le contrat est upgradable", severity: "High" });
 
@@ -159,8 +157,3 @@ app.listen(PORT, () => {
     console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
 
-
-// Démarrer le serveur Express
-app.listen(PORT, () => {
-    console.log(`Serveur lancé sur http://localhost:${PORT}`);
-});
