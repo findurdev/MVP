@@ -4,7 +4,7 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HELIUS_API_KEY = process.env.HELIUS_API_KEY || 'c77e2de7-5ecc-4409-94c1-51964b1c1d47';
+const HELIUS_API_KEY = process.env.HELIUS_API_KEY || '75edbb80-aca9-4f57-ad88-f846627b2a6b';
 
 app.use(cors());
 app.use(express.json());
