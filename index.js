@@ -3,9 +3,8 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-// Définir directement la clé API ici
-const HELIUS_API_KEY = '75edbb80-aca9-4f57-ad88-f846627b2a6b';  // Remplacez par votre propre clé API
+const PORT = 3000;
+const HELIUS_API_KEY = '75edbb80-aca9-4f57-ad88-f846627b2a6b';
 
 app.use(cors());
 app.use(express.json());
@@ -32,25 +31,22 @@ app.get('/get-token-info/:contractAddress', async (req, res) => {
             return res.status(404).json({ error: "Token non trouvé" });
         }
 
-        // Vérification des permissions (mint, freeze)
         const isMintEnabled = tokenData.mint?.authority !== null;
         const isFreezeEnabled = tokenData.freezeAuthority !== null;
-
-        // Date de création
-        const creationDate = new Date(tokenData.createdAt * 1000).toISOString();
+        const creationDate = tokenData.createdAt ? new Date(tokenData.createdAt * 1000).toISOString() : "Date inconnue";
 
         res.json({
             contract: contractAddress,
-            name: tokenData.name,
-            symbol: tokenData.symbol,
-            supply: tokenData.supply,
-            decimals: tokenData.decimals,
+            name: tokenData.name || "N/A",
+            symbol: tokenData.symbol || "N/A",
+            supply: tokenData.supply || 0,
+            decimals: tokenData.decimals || 0,
             mintEnabled: isMintEnabled,
             freezeEnabled: isFreezeEnabled,
             createdAt: creationDate
         });
     } catch (error) {
-        console.error('Erreur API Helius:', error.message);
+        console.error('Erreur API Helius:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erreur lors de la récupération des données du token' });
     }
 });
@@ -74,14 +70,14 @@ app.get('/get-token-holders/:contractAddress', async (req, res) => {
 
     try {
         const response = await axios.post(url, requestBody);
-        const holdersCount = response.data.result.value.length;
+        const holdersCount = response.data.result?.value?.length || 0;
 
         res.json({
             contract: contractAddress,
             holdersCount
         });
     } catch (error) {
-        console.error('Erreur API Helius:', error.message);
+        console.error('Erreur API Helius:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erreur lors de la récupération du nombre de holders' });
     }
 });
@@ -112,7 +108,7 @@ app.get('/deepScan/:contractAddress', async (req, res) => {
             scannedAt: new Date().toISOString()
         });
     } catch (error) {
-        console.error('Erreur API Helius:', error.message);
+        console.error('Erreur API Helius:', error.response?.data || error.message);
         res.status(500).json({ error: 'Erreur lors du scan du contrat' });
     }
 });
@@ -122,18 +118,15 @@ app.get('/deepScan/:contractAddress', async (req, res) => {
  */
 function analyzeContract(data) {
     let findings = [];
+    const dataString = JSON.stringify(data);
 
-    // Recherche de vulnérabilités dans le contrat
-    if (JSON.stringify(data).includes("Upgradeable")) 
+    if (dataString.includes("Upgradeable")) 
         findings.push({ issue: "Le contrat est upgradable", severity: "High" });
-
-    if (JSON.stringify(data).includes("Admin")) 
+    if (dataString.includes("Admin")) 
         findings.push({ issue: "Présence d’un admin avec contrôle total", severity: "Medium" });
-
-    if (JSON.stringify(data).includes("Freeze")) 
+    if (dataString.includes("Freeze")) 
         findings.push({ issue: "Le contrat peut geler les fonds", severity: "High" });
-
-    if (JSON.stringify(data).includes("Mint")) 
+    if (dataString.includes("Mint")) 
         findings.push({ issue: "Possibilité de mint de nouveaux tokens", severity: "Medium" });
 
     return findings;
