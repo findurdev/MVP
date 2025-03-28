@@ -3,7 +3,7 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const HELIUS_API_KEY = '75edbb80-aca9-4f57-ad88-f846627b2a6b';
 
 app.use(cors());
@@ -31,19 +31,30 @@ app.get('/get-token-info/:contractAddress', async (req, res) => {
             return res.status(404).json({ error: "Token non trouvé" });
         }
 
+        // Assurer des valeurs par défaut
+        const name = tokenData.name || "N/A";
+        const symbol = tokenData.symbol || "N/A";
+        const supply = tokenData.supply ?? 0;
+        const decimals = tokenData.decimals ?? 0;
+
         const isMintEnabled = tokenData.mint?.authority !== null;
         const isFreezeEnabled = tokenData.freezeAuthority !== null;
-        const creationDate = tokenData.createdAt ? new Date(tokenData.createdAt * 1000).toISOString() : "Date inconnue";
+
+        // Gestion de la date de création
+        let createdAt = "Date inconnue";
+        if (tokenData.createdAt && Number.isFinite(tokenData.createdAt)) {
+            createdAt = new Date(tokenData.createdAt * 1000).toISOString();
+        }
 
         res.json({
             contract: contractAddress,
-            name: tokenData.name || "N/A",
-            symbol: tokenData.symbol || "N/A",
-            supply: tokenData.supply || 0,
-            decimals: tokenData.decimals || 0,
+            name,
+            symbol,
+            supply,
+            decimals,
             mintEnabled: isMintEnabled,
             freezeEnabled: isFreezeEnabled,
-            createdAt: creationDate
+            createdAt
         });
     } catch (error) {
         console.error('Erreur API Helius:', error.response?.data || error.message);
@@ -118,15 +129,17 @@ app.get('/deepScan/:contractAddress', async (req, res) => {
  */
 function analyzeContract(data) {
     let findings = [];
-    const dataString = JSON.stringify(data);
 
-    if (dataString.includes("Upgradeable")) 
+    if (JSON.stringify(data).includes("Upgradeable")) 
         findings.push({ issue: "Le contrat est upgradable", severity: "High" });
-    if (dataString.includes("Admin")) 
+
+    if (JSON.stringify(data).includes("Admin")) 
         findings.push({ issue: "Présence d’un admin avec contrôle total", severity: "Medium" });
-    if (dataString.includes("Freeze")) 
+
+    if (JSON.stringify(data).includes("Freeze")) 
         findings.push({ issue: "Le contrat peut geler les fonds", severity: "High" });
-    if (dataString.includes("Mint")) 
+
+    if (JSON.stringify(data).includes("Mint")) 
         findings.push({ issue: "Possibilité de mint de nouveaux tokens", severity: "Medium" });
 
     return findings;
