@@ -4,7 +4,8 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HELIUS_API_KEY = process.env.HELIUS_API_KEY || '75edbb80-aca9-4f57-ad88-f846627b2a6b';
+// Définir directement la clé API ici
+const HELIUS_API_KEY = '75edbb80-aca9-4f57-ad88-f846627b2a6b';  // Remplacez par votre propre clé API
 
 app.use(cors());
 app.use(express.json());
@@ -156,4 +157,3 @@ function calculateScore(findings) {
 app.listen(PORT, () => {
     console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
-
